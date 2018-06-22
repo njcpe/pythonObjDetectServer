@@ -5,11 +5,14 @@ import socket, select
 import numpy
 import binascii
 import json
+import base64
 from struct import *
 
 HOST_STR = ''
 PORT = 10000
 BUFFER_SIZE = 4096
+
+
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #server_addr = (HOST_STR, PORT)
@@ -21,7 +24,30 @@ conn, client_addr = sock.accept()
 print('>> Client connected at ', client_addr)
 
 
-def decode(data):
+def trim(data, delim):
+    data_parsed = data.partition(delim)[0]
+    return data_parsed
+
+def recv_decode():
+    
+    data_decode = ''
+    print(">>Packet Receieved, Decoding...")
+    while True:
+        data_decode += (base64.b64decode(conn.recv(BUFFER_SIZE))).decode()
+        if '<END>' in data_decode:
+            print(data_decode)
+            if("<CMD>") in data_decode:
+                print(">>Command Packet Received")
+                break
+            elif("<DATA>") in data_decode:
+                print(">>Data Packet Received")
+                break
+            else:
+                print("Malformed Command")
+                break
+    return data_decode
+
+def getpic(data):
     picture = data.partition("#$#$#$")[0]
     msg = data.partition("#$#$#$")[2]
     print(msg)
@@ -37,8 +63,6 @@ def decode(data):
     #     print('error')
     # cv2.destroyAllWindows()
     return frame
-    
-
 def sendResp(resp):
     conn.send(resp.encode())
     print('>> Sent Test Msg:' + resp)
@@ -47,14 +71,11 @@ def sendResp(resp):
 resp = ''
 try:
     while True:
-        #data = conn.recv(BUFFER_SIZE)
-        data = conn.recv(BUFFER_SIZE)
-        resp += data.decode()
-        print(resp)
-        # if "#$#$#$" in data:
-        #     frame = decode(data)   
-        serverResp = "<RESP>"
-        sendResp(serverResp)
+        decd = recv_decode()
+        #data_decode = base64.b64decode(data)
+        print(decd)
+        #data_foo = Struct.unpack('hh', data_decode)
+
         
 except KeyboardInterrupt:
     conn.close()
